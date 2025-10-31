@@ -153,7 +153,7 @@
     </div>
 
     <h1>WHAT'S UP DAWG!</h1>
-    <p class="lead">Masuk ke arena — tanpa aturan, tanpa ampun. Isi data lo, biar sistem nyari lawan sepadan.</p>
+    <p class="lead">Masuk ke arena tanpa aturan. Isi data lu, biar sistem bisa nyari lawan sepadan.</p>
 
     <div class="map">
       <div id="mapCanvas"><div class="monument">(visual peta sederhana)</div></div>
@@ -170,17 +170,17 @@
     <form id="matchForm">
       <div>
         <label for="height">Tinggi badan (cm)</label>
-        <input id="height" type="number" min="100" max="230" value="170" required>
+        <input id="height" type="number" min="100" max="230" value="0" required>
       </div>
       <div>
         <label for="weight">Berat badan (kg)</label>
-        <input id="weight" type="number" min="30" max="180" value="65" required>
+        <input id="weight" type="number" min="30" max="180" value="0" required>
       </div>
       <div class="full">
         <label for="range">Range lawan</label>
         <select id="range">
-          <option value="near">Dekat (mirip)</option>
-          <option value="far">Jauh (lebih acak)</option>
+          <option value="near">Hard</option>
+          <option value="far">Ultra Hard</option>
         </select>
       </div>
       <div class="full actions">
