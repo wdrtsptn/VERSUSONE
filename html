@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Duel VERSUSONE — Arena Duel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f5f8fb; --card:#fff; --primary:#0b74ff; --muted:#6b7280; --accent:#06b6d4;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:#0f172a;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .card{
+      background:white;
+      width:900px;
+      max-width:100%;
+      border-radius:16px;
+      box-shadow:0 10px 28px rgba(0,0,0,0.08);
+      overflow:hidden;
+      padding:24px;
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+    }
+    .logo{
+      width:44px;height:44px;
+      border-radius:10px;
+      background:linear-gradient(135deg,var(--primary),var(--accent));
+      display:grid;place-items:center;
+      color:white;font-weight:700;
+    }
+    h1{font-size:20px;margin-top:8px;}
+    p.lead{color:var(--muted);margin-top:4px;font-size:14px}
+
+    .map{
+      background:url('Screenshot 2025-10-31 165332.png') center/cover no-repeat;
+      border-radius:14px;
+      height:230px;
+      position:relative;
+      box-shadow:0 4px 16px rgba(0,0,0,0.15);
+      overflow:hidden;
+    }
+    .map::after{
+      content:"";
+      position:absolute;inset:0;
+      background:rgba(255,255,255,0.1);
+    }
+    #mapCanvas{position:relative;width:100%;height:100%;}
+    .monument{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;}
+
+    .status{
+      background:var(--card);
+      border-radius:12px;
+      padding:14px;
+      box-shadow:0 4px 14px rgba(0,0,0,0.05);
+    }
+    .status strong{display:block}
+    .muted{color:var(--muted);font-size:13px}
+
+    .result{margin-top:10px}
+    .opponent-card{
+      display:flex;gap:12px;align-items:center;
+      background:#f9fafb;
+      padding:10px;
+      border-radius:10px;
+      margin-top:8px;
+    }
+    .avatar{
+      width:50px;height:50px;border-radius:10px;
+      background:linear-gradient(135deg,#eef6ff,#e6f9fb);
+      display:grid;place-items:center;
+      font-weight:700;color:var(--primary)
+    }
+    button{
+      cursor:pointer;
+      font-family:inherit;
+      border:none;
+    }
+    .primary{
+      background:var(--primary);
+      color:white;
+      padding:10px 16px;
+      border-radius:10px;
+      font-weight:600;
+    }
+    .ghost{
+      background:transparent;
+      border:1px solid #e5eaf0;
+      padding:10px 14px;
+      border-radius:10px;
+    }
+
+    form{
+      margin-top:6px;
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+    }
+    label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block}
+    input,select{
+      width:100%;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid #dce4f0;
+      font-size:14px;
+    }
+    .full{grid-column:1/-1}
+    .actions{display:flex;gap:10px;align-items:center;margin-top:8px}
+    .toast{
+      display:none;
+      background:#f1f8ff;
+      color:#0b74ff;
+      border:1px solid #cde8ff;
+      padding:10px 14px;
+      border-radius:10px;
+      margin-top:10px;
+    }
+
+    /* loader animation */
+    .loader{display:inline-grid;gap:6px}
+    .pulse{width:10px;height:10px;border-radius:50%;background:var(--primary);animation:pulse 1s infinite}
+    .pulse.delay{animation-delay:0.2s}
+    .pulse.delay2{animation-delay:0.4s}
+    @keyframes pulse{0%{transform:scale(1);opacity:.9}50%{transform:scale(1.6);opacity:.25}100%{transform:scale(1);opacity:.9}}
+
+    @media(max-width:700px){
+      .card{padding:16px;}
+      form{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <div class="logo">VO</div>
+      <div>
+        <div style="font-weight:700">VersusOne</div>
+        <div class="muted" style="font-size:12px">This is VERSUSONE</div>
+      </div>
+    </div>
+
+    <h1>WHAT'S UP DAWG!</h1>
+    <p class="lead">Masuk ke arena — tanpa aturan, tanpa ampun. Isi data lo, biar sistem nyari lawan sepadan.</p>
+
+    <div class="map">
+      <div id="mapCanvas"><div class="monument">(visual peta sederhana)</div></div>
+    </div>
+
+    <div class="status" id="statusBox">
+      <strong>Status</strong>
+      <div class="muted">Belum mencari lawan</div>
+    </div>
+
+    <div class="result" id="resultArea"></div>
+    <div class="toast" id="toast"></div>
+
+    <form id="matchForm">
+      <div>
+        <label for="height">Tinggi badan (cm)</label>
+        <input id="height" type="number" min="100" max="230" value="170" required>
+      </div>
+      <div>
+        <label for="weight">Berat badan (kg)</label>
+        <input id="weight" type="number" min="30" max="180" value="65" required>
+      </div>
+      <div class="full">
+        <label for="range">Range lawan</label>
+        <select id="range">
+          <option value="near">Dekat (mirip)</option>
+          <option value="far">Jauh (lebih acak)</option>
+        </select>
+      </div>
+      <div class="full actions">
+        <button type="submit" class="primary">Mulai Cari Lawan</button>
+        <button type="button" id="resetBtn" class="ghost">Reset</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const pool = [
+      {name:'Ujang Kopling',h:168,w:66,loc:'Ciassem Girang'},
+      {name:'Bayu Cilok',h:175,w:75,loc:'Pangungsen'},
+      {name:'Cecep suka cp',h:162,w:58,loc:'Ampera'},
+      {name:'Dedi bukan mulyadi',h:180,w:85,loc:'Margamulya'},
+      {name:'Fajar oli gardan',h:170,w:64,loc:'Karang Anyar'},
+      {name:'Asep',h:172,w:70,loc:'Margasari'},
+      {name:'Gilang ojol',h:165,w:60,loc:'Sengon Lio'},
+      {name:'Husen Komstir',h:169,w:63,loc:'Ciasem Baru'},
+      {name:'Joko Carpenter',h:182,w:88,loc:'Rajapolah'},
+      {name:'Dilan 2013',h:177,w:78,loc:'Ciasem'}
+    ];
+
+    const form = document.getElementById('matchForm');
+    const statusBox = document.getElementById('statusBox');
+    const mapCanvas = document.getElementById('mapCanvas');
+    const resultArea = document.getElementById('resultArea');
+    const toast = document.getElementById('toast');
+    const resetBtn = document.getElementById('resetBtn');
+
+    function setStatus(title, sub){
+      statusBox.innerHTML = `<strong>${title}</strong><div class="muted">${sub}</div>`;
+    }
+
+    function showLoading(){
+      setStatus('Mencocokkan lawan...', 'Sedang mencari calon lawan yang pas');
+      resultArea.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="loader">
+            <div class="pulse"></div>
+            <div class="pulse delay"></div>
+            <div class="pulse delay2"></div>
+          </div>
+          <div class="muted">Mencari di jaringan global...</div>
+        </div>`;
+      mapCanvas.innerHTML = '';
+      for(let i=0;i<10;i++){
+        const d=document.createElement('div');
+        d.style.width='8px';
+        d.style.height='8px';
+        d.style.borderRadius='50%';
+        d.style.position='absolute';
+        d.style.left=(10+Math.random()*80)+'%';
+        d.style.top=(8+Math.random()*84)+'%';
+        d.style.background='rgba(11,116,255,0.85)';
+        d.style.opacity=0.7;
+        mapCanvas.appendChild(d);
+      }
+    }
+
+    function findOpponent(userH,userW,range){
+      const tolerance = range==='near'? {h:6,w:8} : {h:20,w:20};
+      const filtered = pool.filter(p=>Math.abs(p.h-userH)<=tolerance.h && Math.abs(p.w-userW)<=tolerance.w);
+      return filtered.length? filtered[Math.floor(Math.random()*filtered.length)] : pool[Math.floor(Math.random()*pool.length)];
+    }
+
+    form.addEventListener('submit', e=>{
+      e.preventDefault();
+      const h=+document.getElementById('height').value;
+      const w=+document.getElementById('weight').value;
+      const range=document.getElementById('range').value;
+
+      showLoading();
+
+      setTimeout(()=>{
+        const opp=findOpponent(h,w,range);
+        setStatus('Lawan Ditemukan','Kirim undangan kalau mau tantang lawan ini');
+        resultArea.innerHTML=`
+          <div class="opponent-card">
+            <div class="avatar">${opp.name[0]}</div>
+            <div style="flex:1">
+              <div style="font-weight:700">${opp.name}</div>
+              <div class="muted">Lokasi: ${opp.loc}</div>
+              <div class="muted">Tinggi: ${opp.h} cm • Berat: ${opp.w} kg</div>
+            </div>
+            <button class="primary" id="inviteBtn">Kirim Undangan</button>
+          </div>`;
+
+        mapCanvas.innerHTML = '<div class="monument">📍 Lawan ditemukan</div>';
+        document.getElementById('inviteBtn').addEventListener('click', ()=>{
+          toast.style.display='block';
+          toast.textContent='Undangan terkirim — menunggu konfirmasi...';
+          setStatus('Undangan Terkirim','Menunggu konfirmasi lawan...');
+          const delay=2000+Math.random()*4000;
+          setTimeout(()=>{
+            const accepted=Math.random()<0.7;
+            if(accepted){
+              toast.textContent=`${opp.name} menerima undangan! ⚔️`;
+              setStatus('Lawan Menerima','Siap duel — persiapkan dirimu!');
+            }else{
+              toast.textContent=`${opp.name} menolak undangan 😤`;
+              setStatus('Undangan Ditolak','Lawan menolak — coba lagi.');
+            }
+            setTimeout(()=>toast.style.display='none',4000);
+          },delay);
+        });
+      },1600);
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      form.reset();
+      document.getElementById('height').value=170;
+      document.getElementById('weight').value=65;
+      document.getElementById('range').value='near';
+      setStatus('Belum mencari lawan','Isi data lalu klik "Mulai Cari Lawan"');
+      resultArea.innerHTML='';
+      mapCanvas.innerHTML='<div class="monument">(visual peta sederhana)</div>';
+      toast.style.display='none';
+    });
+
+    setStatus('Belum mencari lawan','Isi data lalu klik "Mulai Cari Lawan"');
+  </script>
+</body>
+</html>
