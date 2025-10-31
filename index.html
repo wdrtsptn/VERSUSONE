@@ -1,18 +1,251 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Duel Random</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Duel Random — Arena Duel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f5f8fb; --card:#fff; --primary:#0b74ff; --muted:#6b7280; --glass: rgba(255,255,255,0.6);
+      --accent: #06b6d4;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,'Noto Sans',sans-serif;background:var(--bg);color:#0f172a}
+
+    /* subtle map background */
+    body::before{
+      content:'';position:fixed;inset:0;z-index:0;opacity:0.12;pointer-events:none;background-image:radial-gradient(circle at 10% 10%, rgba(11,116,255,0.08), transparent 6%), radial-gradient(circle at 90% 80%, rgba(6,182,212,0.06), transparent 8%);
+    }
+
+    .wrap{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px;z-index:1}
+    .card{width:920px;max-width:96%;background:linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));border-radius:16px;box-shadow:0 12px 30px rgba(2,6,23,0.08);overflow:hidden;display:grid;grid-template-columns:1fr 420px}
+
+    .left{padding:40px 36px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--accent));display:grid;place-items:center;color:white;font-weight:700}
+    h1{margin:12px 0 6px;font-size:20px}
+    p.lead{margin:0;color:var(--muted)}
+
+    .intro{margin-top:20px;line-height:1.45}
+
+    form{margin-top:22px;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    input[type='number'], select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e6eef8;background:white;font-size:14px}
+
+    .full{grid-column:1/-1}
+    .actions{display:flex;gap:10px;align-items:center;margin-top:14px}
+    button.primary{background:var(--primary);color:white;padding:11px 16px;border-radius:10px;border:none;font-weight:600;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #e6eef8;padding:10px 14px;border-radius:10px;cursor:pointer}
+
+    /* right column: map + status */
+    .right{background:linear-gradient(180deg, rgba(11,116,255,0.05), rgba(6,182,212,0.03));padding:26px;display:flex;flex-direction:column;gap:14px}
+    .map{flex:1;background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center}
+    .map .dots{position:relative;width:100%;height:220px;border-radius:8px;background:repeating-linear-gradient(90deg, rgba(11,116,255,0.02) 0 1px, transparent 1px 40px)}
+    .map .monument{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:13px;color:var(--muted)}
+
+    .status{padding:12px;background:var(--card);border-radius:10px;box-shadow:0 6px 16px rgba(10,12,30,0.04)}
+    .status strong{display:block}
+    .opponent-card{display:flex;gap:12px;align-items:center}
+    .avatar{width:54px;height:54px;border-radius:10px;background:linear-gradient(135deg,#eef6ff,#e6f9fb);display:grid;place-items:center;font-weight:700;color:#0b74ff}
+
+    .muted{color:var(--muted);font-size:13px}
+
+    /* loading */
+    .loader{display:inline-grid;gap:6px}
+    .pulse{width:10px;height:10px;border-radius:50%;background:var(--primary);animation:pulse 1s infinite}
+    .pulse.delay{animation-delay:0.2s}
+    .pulse.delay2{animation-delay:0.4s}
+    @keyframes pulse{0%{transform:scale(1);opacity:.9}50%{transform:scale(1.6);opacity:.25}100%{transform:scale(1);opacity:.9}}
+
+    /* small screens */
+    @media (max-width:880px){.card{grid-template-columns:1fr;}.right{order:2}.left{order:1}}
+
+    .hint{font-size:13px;color:var(--muted);margin-top:8px}
+
+    .result{margin-top:12px}
+    .status-line{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .toast{padding:10px 12px;border-radius:10px;background:#f1f8ff;border:1px solid #d9eefb;color:#0b74ff}
+
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Duel Random</h1>
-    <p id="status">Tekan tombol di bawah buat cari lawan 🔍</p>
-    <button id="find-btn">Cari Lawan</button>
+  <div class="wrap">
+    <div class="card">
+      <div class="left">
+        <div class="brand"><div class="logo">DR</div><div><div style="font-weight:700">Duel Random</div><div class="muted" style="font-size:12px">Arena duel santai untuk seru-seruan</div></div></div>
+        <h1>Selamat datang</h1>
+        <p class="lead">Ini tempat buat ketemu lawan duel random — cuma buat seru-seruan. Isi data singkat supaya sistem bisa cari lawan yang seimbang.</p>
+
+        <form id="matchForm">
+          <div>
+            <label for="height">Tinggi badan (cm)</label>
+            <input id="height" type="number" min="100" max="230" value="170" required>
+          </div>
+          <div>
+            <label for="weight">Berat badan (kg)</label>
+            <input id="weight" type="number" min="30" max="180" value="65" required>
+          </div>
+
+          <div class="full">
+            <label for="range">Range lawan</label>
+            <select id="range">
+              <option value="near">Dekat (mirip)</option>
+              <option value="far">Jauh (lebih bervariasi)</option>
+            </select>
+            <div class="hint">Range "Dekat" akan mencari lawan dengan tinggi/berat dekat dengan yang kamu tulis. "Jauh" bakal lebih acak.</div>
+          </div>
+
+          <div class="full actions">
+            <button type="submit" class="primary">Mulai Cari Lawan</button>
+            <button type="button" id="resetBtn" class="ghost">Reset</button>
+          </div>
+        </form>
+
+        <div class="result" id="resultArea"></div>
+      </div>
+
+      <div class="right">
+        <div class="map">
+          <div style="font-weight:600">Peta Matchmaking</div>
+          <div class="dots" id="mapCanvas">
+            <div class="monument">(visual peta sederhana)</div>
+          </div>
+        </div>
+
+        <div class="status" id="statusBox">
+          <strong>Status</strong>
+          <div class="muted">Belum mencari lawan</div>
+        </div>
+
+        <div class="toast" id="toast" style="display:none">Undangan terkirim — menunggu konfirmasi</div>
+      </div>
+    </div>
   </div>
 
-  <script src="script.js"></script>
+  <script>
+    // sample pool lawan fiktif (nama, tinggi, berat, kota)
+    const pool = [
+      {name:'Andi Si Petir',h:168,w:66,loc:'Jakarta'},
+      {name:'Bayu Hammer',h:175,w:75,loc:'Bandung'},
+      {name:'Citra Shadow',h:162,w:58,loc:'Yogyakarta'},
+      {name:'Dedi Marauder',h:180,w:85,loc:'Surabaya'},
+      {name:'Eka Swift',h:170,w:64,loc:'Semarang'},
+      {name:'Fajar Blitz',h:172,w:70,loc:'Medan'},
+      {name:'Gilang Frost',h:165,w:60,loc:'Denpasar'},
+      {name:'Hana Siren',h:169,w:63,loc:'Makassar'},
+      {name:'Ivan Rogue',h:182,w:88,loc:'Palembang'},
+      {name:'Joko Ranger',h:177,w:78,loc:'Malang'}
+    ];
+
+    const form = document.getElementById('matchForm');
+    const statusBox = document.getElementById('statusBox');
+    const mapCanvas = document.getElementById('mapCanvas');
+    const resultArea = document.getElementById('resultArea');
+    const toast = document.getElementById('toast');
+    const resetBtn = document.getElementById('resetBtn');
+
+    function setStatus(title,sub){
+      statusBox.innerHTML = `<strong>${title}</strong><div class="muted">${sub}</div>`;
+    }
+
+    function showLoading(){
+      setStatus('Mencocokkan lawan...','Sedang mencari calon lawan yang pas');
+      resultArea.innerHTML = `<div style="display:flex;align-items:center;gap:12px"><div class="loader"><div class="pulse"></div><div class="pulse delay"></div><div class="pulse delay2"></div></div><div class="muted">Mencari di jaringan global...</div></div>`;
+      // add some moving dots on map
+      mapCanvas.innerHTML = '';
+      for(let i=0;i<10;i++){const d=document.createElement('div');d.style.width='8px';d.style.height='8px';d.style.borderRadius='50%';d.style.position='absolute';d.style.left=(10+Math.random()*80)+'%';d.style.top=(8+Math.random()*84)+'%';d.style.background='rgba(11,116,255,0.85)';d.style.opacity=0.7;d.style.transform='scale(0.6)';d.style.transition='transform 0.6s ease,opacity 0.6s ease';mapCanvas.appendChild(d);setTimeout(()=>{d.style.transform='scale(1.4)';d.style.opacity=1},100+i*80)}
+    }
+
+    function findOpponent(userH,userW,range){
+      // if range==near, pick from pool with small diff; if far pick random with larger tolerance
+      const tolerance = range==='near'? {h:6,w:8} : {h:20,w:20};
+      // filter pool by tolerance
+      const filtered = pool.filter(p=>Math.abs(p.h-userH) <= tolerance.h && Math.abs(p.w-userW) <= tolerance.w);
+      let candidate;
+      if(filtered.length>0){ candidate = filtered[Math.floor(Math.random()*filtered.length)]; }
+      else { candidate = pool[Math.floor(Math.random()*pool.length)]; }
+      return candidate;
+    }
+
+    form.addEventListener('submit', e =>{
+      e.preventDefault();
+      const h = Number(document.getElementById('height').value || 170);
+      const w = Number(document.getElementById('weight').value || 65);
+      const range = document.getElementById('range').value;
+
+      // show loading animation
+      showLoading();
+
+      // simulate network matching delay
+      setTimeout(()=>{
+        const opp = findOpponent(h,w,range);
+        // adjust opponent to be closer to user for "near" range visually
+        if(range==='near'){
+          // nudge values to be very similar
+          opp.h = h + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random()*3);
+          opp.w = w + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random()*4);
+        }
+
+        // show result
+        setStatus('Lawan Ditemukan','Kirim undangan kalau mau tantang lawan ini');
+        resultArea.innerHTML = `
+          <div class="opponent-card">
+            <div class="avatar">${opp.name.split(' ')[0].charAt(0)}</div>
+            <div style="flex:1">
+              <div style="font-weight:700">${opp.name}</div>
+              <div class="muted">Lokasi: ${opp.loc}</div>
+              <div class="muted">Tinggi: ${opp.h} cm • Berat: ${opp.w} kg</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+              <button class="primary" id="inviteBtn">Kirim Undangan</button>
+              <div class="muted" style="font-size:12px">Jarak: ${range==='near'?'Dekat':'Jauh'}</div>
+            </div>
+          </div>
+        `;
+
+        // animate a "connection" on map: center dot
+        mapCanvas.innerHTML = '';
+        const center = document.createElement('div');center.style.width='18px';center.style.height='18px';center.style.borderRadius='50%';center.style.position='absolute';center.style.left='50%';center.style.top='45%';center.style.transform='translate(-50%,-50%)';center.style.background='linear-gradient(135deg,var(--primary),var(--accent))';center.style.boxShadow='0 6px 18px rgba(11,116,255,0.25)';mapCanvas.appendChild(center);
+
+        // attach invite handler
+        document.getElementById('inviteBtn').addEventListener('click', ()=>{
+          // show toast pending
+          toast.style.display='block';
+          toast.textContent = 'Undangan terkirim — menunggu konfirmasi ' + opp.name;
+          // simulate remote response after random delay
+          setStatus('Undangan Terkirim','Menunggu konfirmasi lawan...');
+
+          const delay = 2000 + Math.floor(Math.random()*4000);
+          setTimeout(()=>{
+            const accepted = Math.random() < 0.7; // 70% diterima
+            if(accepted){
+              toast.textContent = opp.name + ' menerima undangan! Mulai duel! ⚔️';
+              setStatus('Lawan Menerima','Siap duel — persiapkan dirimu!');
+              resultArea.innerHTML += `<div class="toast" style="margin-top:10px;background:#edf7ed;color:#0a7d2b;border:1px solid #d1f0d1">${opp.name} menerima undangan. Duel dimulai!</div>`;
+            } else {
+              toast.textContent = opp.name + ' menolak undangan. Coba cari lagi.';
+              setStatus('Undangan Ditolak','Lawan menolak — coba lagi atau cari lawan lain.');
+            }
+            // auto-hide toast after 4s
+            setTimeout(()=>{toast.style.display='none'},4000);
+          },delay);
+        });
+
+      },1800);
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      document.getElementById('height').value = 170;document.getElementById('weight').value = 65;document.getElementById('range').value='near';
+      setStatus('Belum mencari lawan','Isi data lalu klik "Mulai Cari Lawan"');
+      resultArea.innerHTML = '';
+      mapCanvas.innerHTML = '<div class="monument">(visual peta sederhana)</div>';
+      toast.style.display='none';
+    });
+
+    // initial status
+    setStatus('Belum mencari lawan','Isi data lalu klik "Mulai Cari Lawan"');
+  </script>
 </body>
 </html>
+
